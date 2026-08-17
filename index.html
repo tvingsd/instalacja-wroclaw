@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Instalacja AV - Atacama (Typewriter Sequence)</title>
+    <title>Instalacja AV - Atacama (Perfect Matrix & Story)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     
@@ -17,7 +17,6 @@
             --font-main: 'VT323', monospace;
             
             --grid-font-size: 22px; 
-            --grid-line-height: 1.1; 
             
             --play-bg: #e2e2e2;
             --play-text: #000000;
@@ -29,54 +28,66 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
-        body, html {
+        /* Blokada skalowania tekstu przez iOS */
+        html, body {
             width: 100vw; height: 100vh;
             overflow: hidden; 
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
+            -webkit-text-size-adjust: none; 
         }
 
-        /* --- WARSTWA 1: MATEMATYCZNA SIATKA --- */
+        /* --- WARSTWA 1: MATEMATYCZNA SIATKA ABSOLUTNA --- */
         #grid-container {
-            position: absolute; top: 50%; left: 50%;
+            position: absolute; 
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            display: grid; 
-            justify-content: center; align-content: center;
-            text-shadow: 0 0 3px rgba(226, 226, 226, 0.4);
+            /* Szerokość i wysokość zostaną nadane przez JS */
             z-index: 10;
         }
 
         .data-block {
+            position: absolute; /* Gwarancja braku nachodzenia na siebie! */
             display: flex; align-items: center; justify-content: center;
-            width: 5ch; height: var(--grid-line-height); line-height: var(--grid-line-height);
             font-size: var(--grid-font-size);
-            opacity: 0.8;
-            transition: opacity 1.5s ease-out, color 0.1s; 
-            overflow: hidden; white-space: nowrap;
+            letter-spacing: 2px; /* Lekki oddech dla czytelności */
+            opacity: 0; /* Startują jako niewidoczne */
+            transition: opacity 0.5s ease-out; 
+            white-space: nowrap;
         }
 
-        /* --- WARSTWA CENTRUM (PRZYCISK) --- */
-        .center-wrapper {
-            position: relative; cursor: pointer; opacity: 1 !important; 
-        }
-
-        .layer-glitch {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .layer-btn {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
+        /* --- WARSTWA 2: PRZYCISKI W CENTRUM --- */
+        #playBtn, #stopBtn {
+            position: absolute; 
             display: flex; align-items: center; justify-content: center;
             background-color: var(--play-bg);
             color: var(--play-text);
-            text-shadow: none; font-weight: bold;
-            animation: fastPulse 2s infinite ease-in-out;
-            pointer-events: none; 
+            font-family: var(--font-main);
+            font-size: var(--grid-font-size);
+            letter-spacing: 2px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+
+        #playBtn {
+            animation: fastPulse 2s infinite ease-in-out;
+        }
+
+        #stopBtn {
+            display: none; 
+            /* Stop jest przypięty centralnie do ekranu, nie do siatki */
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 5px 15px; /* Minimalistyczny margines dla przycisku */
+        }
+
+        /* Klasa dodawana przez JS w momencie startu zdjęć: 5s widoczny, 5s ukryty */
+        .pulse-5s {
+            animation: pulse5s 10s infinite ease-in-out;
         }
 
         @keyframes fastPulse {
@@ -84,15 +95,21 @@
             50% { opacity: 0; } 
         }
 
-        /* --- WARSTWA 2: TYPEWRITER TEXT --- */
+        @keyframes pulse5s {
+            0%, 40% { opacity: 1; pointer-events: auto; }
+            50%, 90% { opacity: 0; pointer-events: none; }
+            100% { opacity: 1; pointer-events: auto; }
+        }
+
+        /* --- WARSTWA 3: TYPEWRITER TEXT --- */
         #typewriter-container {
-            position: absolute; 
-            /* Ustawiony wyżej, aby nie zasłaniał mrugającego na środku STOP */
-            top: 30%; left: 0;
-            width: 100%; 
-            display: flex; align-items: center; justify-content: center;
+            position: fixed; 
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%; 
+            text-align: center;
             z-index: 25;
-            font-size: 34px; /* Większy font dla czytelności narracji */
+            font-size: 32px; 
             letter-spacing: 2px;
             pointer-events: none;
             opacity: 1;
@@ -108,7 +125,7 @@
             50%, 100% { opacity: 0; }
         }
 
-        /* --- WARSTWA 3: PEŁNOEKRANOWE ZDJĘCIA --- */
+        /* --- WARSTWA 4: PEŁNOEKRANOWE ZDJĘCIA --- */
         #slider-container {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -137,12 +154,13 @@
         const AUDIO_FILE_URL = "Play Sustain instalacja 5_1.mp3"; 
         const BASE_NUMBER = "39000";
         
-        const ACTIVE_THREADS = 40; 
+        // Intensywność deszczu cyfr
+        const DENSITY = 80; 
         const ANIMATION_SPEED_MIN = 10; 
-        const ANIMATION_SPEED_MAX = 40; 
+        const ANIMATION_SPEED_MAX = 35; 
         
         const IMAGE_SHOW_TIME = 6000; 
-        const TYPEWRITER_SPEED = 60; // Prędkość pisania liter (w ms)
+        const TYPEWRITER_SPEED = 60; 
         // ==========================================
 
         const IMAGE_FILES = [];
@@ -151,8 +169,10 @@
         }
     </script>
 
+    <!-- UI -->
     <div id="grid-container"></div>
-    
+    <div id="playBtn">PLAY</div>
+    <div id="stopBtn">STOP</div>
     <div id="typewriter-container"></div>
 
     <div id="slider-container">
@@ -162,6 +182,8 @@
 
     <script>
         const gridContainer = document.getElementById('grid-container');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const typewriterContainer = document.getElementById('typewriter-container');
         const slideA = document.getElementById('slideA');
         const slideB = document.getElementById('slideB');
@@ -172,21 +194,17 @@
         audio.crossOrigin = "anonymous";
         audio.volume = 0; 
 
-        let activeIntervals = []; 
         let glitchableBlocks = [];
         let isPlaying = false;
         let isGridActive = true; 
-        let btnLayerElement = null;
         
         let currentSlide = slideA;
         let nextSlide = slideB;
         let sliderLoop = null;
         let fadeAudioInterval = null;
-        
-        // Flaga do przerwania sekwencji jeśli ktoś wciśnie STOP w trakcie pisania
         let abortSequence = false;
 
-        // --- POMOCNICZE FUNKCJE ASYNCHRONICZNE ---
+        // --- FUNKCJE POMOCNICZE ---
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
         async function typeText(phrase) {
@@ -203,19 +221,24 @@
             typewriterContainer.innerHTML = '';
         }
 
-        // --- 1. GENEROWANIE IDEALNEJ SIATKI ---
-        function generateGrid() {
+        // --- 1. BEZWZGLĘDNE POZYCJONOWANIE PIKSELOWE (FIX NA iOS) ---
+        function generateExactAbsoluteGrid() {
             gridContainer.innerHTML = '';
             glitchableBlocks = [];
             
+            // Fizyczny pomiar 1 bloku w ukryciu
             const testSpan = document.createElement('span');
-            testSpan.className = 'data-block';
+            testSpan.style.fontFamily = "'VT323', monospace";
+            testSpan.style.fontSize = "22px";
+            testSpan.style.letterSpacing = "2px";
             testSpan.innerText = BASE_NUMBER;
-            gridContainer.appendChild(testSpan);
+            testSpan.style.position = "absolute";
+            testSpan.style.visibility = "hidden";
+            document.body.appendChild(testSpan);
             
             const blockW = testSpan.getBoundingClientRect().width;
-            const blockH = testSpan.getBoundingClientRect().height;
-            gridContainer.innerHTML = '';
+            const blockH = testSpan.getBoundingClientRect().height * 1.2; // margines w pionie
+            document.body.removeChild(testSpan);
             
             const safeWidth = window.innerWidth * 1.15;
             const safeHeight = window.innerHeight * 1.15;
@@ -226,93 +249,91 @@
             if (cols % 2 === 0) cols++;
             if (rows % 2 === 0) rows++;
             
-            gridContainer.style.gridTemplateColumns = `repeat(${cols}, 5ch)`;
-            gridContainer.style.gridTemplateRows = `repeat(${rows}, ${blockH}px)`;
+            const containerW = cols * blockW;
+            const containerH = rows * blockH;
             
-            const totalBlocks = cols * rows;
-            const centerIndex = Math.floor(totalBlocks / 2); 
+            gridContainer.style.width = `${containerW}px`;
+            gridContainer.style.height = `${containerH}px`;
             
-            for(let i = 0; i < totalBlocks; i++) {
-                if (i === centerIndex) {
-                    const wrapper = document.createElement('span');
-                    wrapper.className = 'data-block center-wrapper';
-                    wrapper.style.zIndex = "100";
+            const centerRow = Math.floor(rows / 2);
+            const centerCol = Math.floor(cols / 2);
+            
+            for(let r = 0; r < rows; r++) {
+                for(let c = 0; c < cols; c++) {
                     
-                    const glitchLayer = document.createElement('span');
-                    glitchLayer.className = 'layer-glitch';
-                    glitchLayer.innerText = BASE_NUMBER;
-                    
-                    const btnLayer = document.createElement('span');
-                    btnLayer.className = 'layer-btn';
-                    btnLayer.innerText = isPlaying ? "STOP " : "PLAY ";
-                    btnLayerElement = btnLayer; 
-                    
-                    wrapper.appendChild(glitchLayer);
-                    wrapper.appendChild(btnLayer);
-                    gridContainer.appendChild(wrapper);
-
-                    runCenterGlitch(glitchLayer);
-                    wrapper.addEventListener('click', handlePlayStop);
-                } else {
-                    const span = document.createElement('span');
-                    span.className = 'data-block';
-                    span.innerText = BASE_NUMBER;
-                    glitchableBlocks.push(span);
-                    gridContainer.appendChild(span);
-                }
-            }
-        }
-
-        // --- SILNIKI HAKERSKIE ---
-        function runCenterGlitch(element) {
-            const targetVal = parseInt(BASE_NUMBER);
-            function runCycle() {
-                let currentVal = 0;
-                const step = Math.floor(Math.random() * 3500) + 1111; 
-                const frameRate = Math.floor(Math.random() * 20) + 15; 
-                const interval = setInterval(() => {
-                    currentVal += step;
-                    if (currentVal >= targetVal) {
-                        currentVal = targetVal;
-                        element.innerText = currentVal.toString().padStart(5, '0');
-                        element.style.color = "";
-                        clearInterval(interval);
-                        setTimeout(runCycle, Math.random() * 2000 + 500);
+                    if (r === centerRow && c === centerCol) {
+                        // Idealne pozycjonowanie przycisku PLAY
+                        playBtn.style.width = `${blockW}px`;
+                        playBtn.style.height = `${blockH}px`;
+                        playBtn.style.left = `calc(50% - ${containerW/2}px + ${c * blockW}px)`;
+                        playBtn.style.top = `calc(50% - ${containerH/2}px + ${r * blockH}px)`;
+                        
                     } else {
-                        element.innerText = currentVal.toString().padStart(5, '0');
-                        element.style.color = "#ffffff";
+                        const span = document.createElement('span');
+                        span.className = 'data-block';
+                        span.style.width = `${blockW}px`;
+                        span.style.height = `${blockH}px`;
+                        span.style.left = `${c * blockW}px`;
+                        span.style.top = `${r * blockH}px`;
+                        span.innerText = BASE_NUMBER;
+                        span.dataset.animating = "false";
+                        
+                        glitchableBlocks.push(span);
+                        gridContainer.appendChild(span);
                     }
-                }, frameRate);
-            }
-            runCycle();
-        }
-
-        function glitchRandomBlock() {
-            if(!isGridActive || glitchableBlocks.length === 0) return;
-            const randomBlock = glitchableBlocks[Math.floor(Math.random() * glitchableBlocks.length)];
-            let currentVal = 0;
-            const targetVal = parseInt(BASE_NUMBER);
-            const step = Math.floor(Math.random() * 4000) + 1111; 
-            const frameRate = Math.floor(Math.random() * (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)) + ANIMATION_SPEED_MIN;
-
-            const interval = setInterval(() => {
-                if(!isGridActive) { clearInterval(interval); return; }
-                currentVal += step;
-                if (currentVal >= targetVal) {
-                    currentVal = targetVal;
-                    clearInterval(interval);
-                    setTimeout(glitchRandomBlock, Math.random() * 100);
                 }
-                randomBlock.innerText = currentVal.toString().padStart(5, '0');
-                randomBlock.style.color = currentVal < targetVal ? "#ffffff" : "";
-            }, frameRate);
+            }
         }
 
-        function startGridEngines() {
-            isGridActive = true;
-            for(let i = 0; i < ACTIVE_THREADS; i++) {
-                setTimeout(glitchRandomBlock, Math.random() * 1000);
-            }
+        // --- SILNIK HAKERSKI (GĘSTY, RANDOMOWY, WYGASAJĄCY) ---
+        function runMatrixEngine() {
+            if (!isGridActive) return;
+            
+            // Bardzo szybkie wywoływanie kolejnych procesów
+            setTimeout(() => {
+                if(!isGridActive) return;
+                
+                const randomBlock = glitchableBlocks[Math.floor(Math.random() * glitchableBlocks.length)];
+                
+                if (randomBlock.dataset.animating === "false") {
+                    randomBlock.dataset.animating = "true";
+                    randomBlock.style.opacity = "1";
+                    randomBlock.style.color = "#ffffff";
+                    
+                    let currentVal = 0;
+                    const targetVal = parseInt(BASE_NUMBER);
+                    const step = Math.floor(Math.random() * 4000) + 1111; 
+                    const frameRate = Math.floor(Math.random() * (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)) + ANIMATION_SPEED_MIN;
+
+                    const interval = setInterval(() => {
+                        if(!isGridActive) { 
+                            clearInterval(interval); 
+                            randomBlock.dataset.animating = "false";
+                            return; 
+                        }
+                        
+                        currentVal += step;
+                        if (currentVal >= targetVal) {
+                            currentVal = targetVal;
+                            clearInterval(interval);
+                            randomBlock.innerText = currentVal.toString().padStart(5, '0');
+                            randomBlock.style.color = "";
+                            
+                            // Łagodne wygaszenie po osiągnięciu 39000
+                            setTimeout(() => {
+                                randomBlock.style.opacity = "0";
+                                randomBlock.dataset.animating = "false";
+                            }, 300);
+                            
+                        } else {
+                            randomBlock.innerText = currentVal.toString().padStart(5, '0');
+                        }
+                    }, frameRate);
+                }
+                
+                // Odpalenie kolejnego ziarenka matrixa
+                runMatrixEngine();
+            }, Math.random() * (1000 / DENSITY)); 
         }
 
         // --- ZDJĘCIA ---
@@ -331,7 +352,6 @@
         async function runMainSequence() {
             abortSequence = false;
 
-            // Fade in audio (3 sekundy ramp-up)
             clearInterval(fadeAudioInterval);
             let vol = 0;
             fadeAudioInterval = setInterval(() => {
@@ -340,119 +360,113 @@
                 else { audio.volume = vol; }
             }, 50);
 
-            // Blackout start
+            // Blackout
             await sleep(1500);
             if(abortSequence) return;
 
-            // Narracja 1
+            // Narracja (Napisy idealnie na środku)
             await typeText("IN THE ATACAMA DESERT");
             await sleep(1500);
             await clearText();
             if(abortSequence) return;
             await sleep(800);
 
-            // Narracja 2
             await typeText("THERE ARE CURRENTLY");
             await sleep(1500);
             await clearText();
             if(abortSequence) return;
             await sleep(800);
 
-            // Narracja 3
             await typeText("AROUND 39,000 TONS");
             await sleep(1500);
             await clearText();
             if(abortSequence) return;
             await sleep(800);
 
-            // Narracja 4
             await typeText("OF DISCARDED FAST FASHION");
             await sleep(1800);
             await clearText();
             if(abortSequence) return;
             await sleep(800);
             
-            // Narracja 5
             await typeText("GROWING BY OVER 100 TONS EVERY DAY");
             await sleep(2200);
             await clearText();
             if(abortSequence) return;
-            await sleep(1000); // Finałowy blackout przed zdjęciami
+            await sleep(1000); 
 
-            // Wejście slajdera
+            // Włączenie pokazu slajdów i przycisku STOP
             changeSlide();
             sliderLoop = setInterval(changeSlide, IMAGE_SHOW_TIME);
+            
+            stopBtn.style.display = "flex";
+            stopBtn.classList.add("pulse-5s");
         }
 
-        // --- LOGIKA PLAY / STOP ---
-        function handlePlayStop() {
-            if (!isPlaying) {
-                // START
-                isPlaying = true;
-                btnLayerElement.innerText = "STOP ";
-                
-                audio.volume = 0;
-                audio.play().catch(e => console.error(e));
+        // --- LOGIKA KLIKNIĘĆ ---
+        playBtn.addEventListener('click', () => {
+            isPlaying = true;
+            playBtn.style.display = "none"; // Całkowite ukrycie PLAY
+            
+            audio.volume = 0;
+            audio.play().catch(e => console.error(e));
 
-                const docEl = document.documentElement;
-                const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-                if (requestFS && !document.fullscreenElement) requestFS.call(docEl);
+            const docEl = document.documentElement;
+            const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFS && !document.fullscreenElement) requestFS.call(docEl);
 
-                // Zatrzymanie maszyn i Fade-Out Cyfr
-                isGridActive = false;
-                glitchableBlocks.forEach(block => {
-                    block.style.opacity = '0';
-                });
+            isGridActive = false;
+            glitchableBlocks.forEach(block => {
+                block.style.opacity = '0';
+            });
 
-                runMainSequence();
+            runMainSequence();
+        });
 
-            } else {
-                // STOP (POWRÓT)
-                isPlaying = false;
-                abortSequence = true; // Przerywa pisanie i zdjęcia
-                btnLayerElement.innerText = "PLAY ";
+        stopBtn.addEventListener('click', () => {
+            isPlaying = false;
+            abortSequence = true; 
+            
+            stopBtn.style.display = "none";
+            stopBtn.classList.remove("pulse-5s");
 
-                clearInterval(sliderLoop);
-                clearText(); // Czyści ewentualny niedokończony tekst
-                
-                slideA.classList.remove('active');
-                slideB.classList.remove('active');
+            clearInterval(sliderLoop);
+            clearText(); 
+            
+            slideA.classList.remove('active');
+            slideB.classList.remove('active');
 
-                // AUDIO RAMP-DOWN
-                clearInterval(fadeAudioInterval);
-                let vol = audio.volume;
-                fadeAudioInterval = setInterval(() => {
-                    vol -= 1 / 60;
-                    if (vol <= 0) {
-                        audio.volume = 0;
-                        audio.pause();
-                        clearInterval(fadeAudioInterval);
-                    } else { audio.volume = vol; }
-                }, 50);
+            clearInterval(fadeAudioInterval);
+            let vol = audio.volume;
+            fadeAudioInterval = setInterval(() => {
+                vol -= 1 / 60;
+                if (vol <= 0) {
+                    audio.volume = 0;
+                    audio.pause();
+                    clearInterval(fadeAudioInterval);
+                } else { audio.volume = vol; }
+            }, 50);
 
-                // FADE IN CYFR
-                glitchableBlocks.forEach(block => {
-                    block.innerText = BASE_NUMBER; 
-                    block.style.color = "";
-                    setTimeout(() => { block.style.opacity = '0.8'; }, 100); 
-                });
+            setTimeout(() => {
+                playBtn.style.display = "flex"; // Przywrócenie PLAY
+                isGridActive = true;
+                // Start maszyn (20 wątków inicjujących rozproszone odliczanie)
+                for(let i=0; i<20; i++) runMatrixEngine();
+            }, 3000);
+        });
 
-                setTimeout(startGridEngines, 3000);
-            }
-        }
-
-        // --- INICJALIZACJA - GWARANCJA WCZYTANIA FONTU ---
+        // --- INICJALIZACJA - Oczekiwanie na pełne wczytanie fontu dla precyzji! ---
         document.fonts.ready.then(() => {
-            generateGrid();
-            startGridEngines();
+            generateExactAbsoluteGrid();
+            isGridActive = true;
+            for(let i=0; i<20; i++) runMatrixEngine();
         });
         
         window.addEventListener('resize', () => {
             if(!isPlaying) {
                 clearTimeout(window.resizeTimer);
                 window.resizeTimer = setTimeout(() => {
-                    generateGrid();
-                    startGridEngines();
+                    generateExactAbsoluteGrid();
                 }, 200);
             }
         });
