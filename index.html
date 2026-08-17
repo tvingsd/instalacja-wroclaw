@@ -1,0 +1,160 @@
+{\rtf1\ansi\ansicpg1250\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!DOCTYPE html>\
+<html lang="pl">\
+<head>\
+    <meta charset="UTF-8">\
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">\
+    <title>Instalacja AV - Atacama</title>\
+    <style>\
+        /* ========================================== */\
+        /* --- PARAMETRY WIZUALNE DO ZMIANY (CSS) --- */\
+        /* ========================================== */\
+        :root \{\
+            --global-object-size: 150px; /* Rozmiar g\uc0\u322 \'f3wnego przycisku */\
+            --bg-color: #000000;         /* Kolor t\uc0\u322 a */\
+            --btn-color: #ffffff;        /* Kolor przycisku */\
+            --text-color: #000000;       /* Kolor tekstu na przycisku */\
+            --info-text-color: #ffffff;  /* Kolor tekstu informacyjnego w trybie audio */\
+        \}\
+        /* ========================================== */\
+\
+        body \{\
+            margin: 0;\
+            height: 100vh;\
+            display: flex;\
+            flex-direction: column;\
+            justify-content: center;\
+            align-items: center;\
+            background-color: var(--bg-color);\
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;\
+            overflow: hidden;\
+        \}\
+\
+        #playBtn \{\
+            width: var(--global-object-size);\
+            height: var(--global-object-size);\
+            background-color: var(--btn-color);\
+            color: var(--text-color);\
+            border: none;\
+            border-radius: 50%;\
+            font-size: 24px;\
+            font-weight: bold;\
+            cursor: pointer;\
+            text-transform: uppercase;\
+            transition: transform 0.1s, opacity 0.3s;\
+            z-index: 10;\
+        \}\
+\
+        #playBtn:active \{\
+            transform: scale(0.95);\
+        \}\
+\
+        #videoPlayer \{\
+            display: none;\
+            max-width: 100%;\
+            max-height: 100vh;\
+            object-fit: contain;\
+        \}\
+\
+        #audioInfo \{\
+            display: none;\
+            color: var(--info-text-color);\
+            font-size: 16px;\
+            text-align: center;\
+            letter-spacing: 2px;\
+            text-transform: uppercase;\
+        \}\
+    </style>\
+</head>\
+<body>\
+\
+    <!-- ======================================= -->\
+    <!-- --- PARAMETRY PLIK\'d3W DO ZMIANY (JS) --- -->\
+    <!-- ======================================= -->\
+    <script>\
+        // Zaktualizowana nazwa pliku MP4\
+        const VIDEO_FILE_URL = "ATACAMA_FINAL_SMOOTH_MORPH.mp4";\
+        \
+        // Zmie\uc0\u324  rozszerzenie na .mp3, gdy przekonwertujesz plik z WAV!\
+        const AUDIO_FILE_URL = "Wystawa PS sound.wav"; \
+        \
+        const DEFAULT_TO_VIDEO_ON_UNKNOWN = true; \
+    </script>\
+    <!-- ======================================= -->\
+\
+    <button id="playBtn">PLAY</button>\
+    \
+    <!-- Dodano parametr 'muted', aby wideo nie dublowa\uc0\u322 o d\u378 wi\u281 ku z pliku audio -->\
+    <video id="videoPlayer" playsinline loop muted></video>\
+    \
+    <div id="audioInfo">Audio Experience<br><span style="font-size: 10px; opacity: 0.4; letter-spacing: 1px;">S\uc0\u322 absze \u322 \u261 cze \'96 \u322 adujemy tylko d\u378 wi\u281 k</span></div>\
+\
+    <script>\
+        const btn = document.getElementById('playBtn');\
+        const video = document.getElementById('videoPlayer');\
+        const audioInfo = document.getElementById('audioInfo');\
+        \
+        const audio = new Audio();\
+        audio.loop = true;\
+\
+        let isFastConnection = DEFAULT_TO_VIDEO_ON_UNKNOWN;\
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;\
+        \
+        if (connection && connection.effectiveType) \{\
+            if (connection.effectiveType === '4g') \{\
+                isFastConnection = true;\
+            \} else \{\
+                isFastConnection = false;\
+            \}\
+        \}\
+\
+        let isPlaying = false;\
+\
+        btn.addEventListener('click', () => \{\
+            if (!isPlaying) \{\
+                // Odpalenie osobnego pliku audio jest wsp\'f3lne dla obu tryb\'f3w\
+                audio.src = AUDIO_FILE_URL;\
+                audio.play();\
+\
+                if (isFastConnection) \{\
+                    // Tryb wideo (wideo odtwarza tylko obraz, d\uc0\u378 wi\u281 k leci z pliku audio)\
+                    video.src = VIDEO_FILE_URL;\
+                    video.style.display = 'block';\
+                    btn.style.display = 'none';\
+                    video.play();\
+                \} else \{\
+                    // Tryb wolnego \uc0\u322 \u261 cza (tylko audio)\
+                    audioInfo.style.display = 'block';\
+                    btn.innerText = "STOP";\
+                \}\
+            \} else \{\
+                // Zatrzymanie\
+                audio.pause();\
+                if (isFastConnection) \{\
+                    video.pause();\
+                \} else \{\
+                    btn.innerText = "PLAY";\
+                \}\
+            \}\
+            isPlaying = !isPlaying;\
+        \});\
+\
+        // Wznawianie i pauzowanie po klikni\uc0\u281 ciu w obszar wideo\
+        video.addEventListener('click', () => \{\
+            if (video.paused) \{\
+                video.play();\
+                audio.play();\
+            \} else \{\
+                video.pause();\
+                audio.pause();\
+            \}\
+        \});\
+    </script>\
+</body>\
+</html>}
