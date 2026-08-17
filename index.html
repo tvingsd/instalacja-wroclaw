@@ -3,71 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Instalacja AV - Atacama (39000 Digits)</title>
+    <title>Instalacja AV - Atacama (B&W Glitch Matrix)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     
     <style>
         /* ========================================== */
-        /* --- PARAMETRY WIZUALNE --- */
+        /* --- PARAMETRY KONFIGURACYJNE (CSS) --- */
         /* ========================================== */
         :root {
             --bg-color: #000000;
             --text-color: #e2e2e2; 
             --font-main: 'VT323', monospace;
             
-            /* Kolory przycisku w centrum (negatyw) */
+            /* ROZMIAR Z TWOJEGO SCREENA */
+            --grid-font-size: 22px; 
+            --grid-line-height: 1.1; 
+            
+            /* Kolor przycisku PLAY */
             --play-bg: #e2e2e2;
             --play-text: #000000;
+
+            /* FILTR DLA ZDJĘĆ - czarno-białe z podbitym kontrastem */
+            --image-filter: grayscale(100%) contrast(140%);
         }
         /* ========================================== */
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body, html {
-            width: 100vw; height: 100vh;
-            overflow: hidden;
+            width: 100vw; 
+            height: 100vh;
+            overflow: hidden; 
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            /* Zabezpieczenie wyrównania do środka */
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* --- PERFEKCYJNA SIATKA (CSS GRID) --- */
         #grid-container {
-            display: grid;
-            width: 100vw; 
-            height: 100vh;
-            /* Kolumny i rzędy są wstrzykiwane przez algorytm JS */
-            line-height: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
             text-shadow: 0 0 3px rgba(226, 226, 226, 0.4);
         }
 
         .data-block {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 5ch; /* Usunięte marginesy, idealnie zbity blok */
+            height: var(--grid-line-height);
+            line-height: var(--grid-line-height);
+            font-size: var(--grid-font-size);
+            opacity: 0.8;
+            transition: color 0.1s, opacity 0.1s;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* Klasa aktywująca filtr czarno-biały dla zdjęć */
+        .img-active {
+            filter: var(--image-filter);
+        }
+
+        /* --- LOGIKA PULSUJĄCEGO CENTRUM (2 WARSTWY) --- */
+        .center-wrapper {
+            position: relative;
+            cursor: pointer;
+            opacity: 1 !important; 
+        }
+
+        .layer-glitch {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100%; height: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-            opacity: 0.8;
-            transition: color 0.1s, opacity 0.1s;
         }
 
-        /* Fizyczny klocek pełniący rolę przycisku */
-        #playBtn {
+        .layer-btn {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background-color: var(--play-bg);
             color: var(--play-text);
             text-shadow: none; 
-            cursor: pointer;
-            opacity: 1 !important;
             font-weight: bold;
+            animation: slowPulse 5s infinite ease-in-out;
+            pointer-events: none; 
         }
 
-        #playBtn:active {
-            background-color: #ffffff;
-            transform: scale(0.9);
+        @keyframes slowPulse {
+            0%, 15% { opacity: 1; }      
+            40%, 60% { opacity: 0; }     
+            85%, 100% { opacity: 1; }    
         }
     </style>
 </head>
@@ -78,15 +115,22 @@
         // --- PARAMETRY KONFIGURACYJNE (JS) ---
         // ==========================================
         const AUDIO_FILE_URL = "Play Sustain instalacja 5_1.mp3"; 
-        
         const BASE_NUMBER = "39000";
-        // Wymuszenie DOKŁADNIE 39000 cyfr na ekranie (7800 bloków x 5 cyfr)
-        const TOTAL_BLOCKS = 7800; 
         
-        const ACTIVE_THREADS = 25; // Ilość jednoczesnych hakerskich losowań
+        // --- Parametry Animacji Cyfr ---
+        const ACTIVE_THREADS = 40; 
         const ANIMATION_SPEED_MIN = 10; 
         const ANIMATION_SPEED_MAX = 40; 
+        
+        // --- Parametry Ukrytych Zdjęć ---
+        const IMAGE_SHOW_TIME = 2000; // Ile milisekund widać zdjęcie
+        const IMAGE_SPAWN_RATE = 800; // Co ile milisekund system losuje nowe zdjęcie
         // ==========================================
+
+        const IMAGE_FILES = [];
+        for (let i = 12; i <= 21; i++) {
+            IMAGE_FILES.push(`Pustynia Atakama${i}.jpeg`);
+        }
     </script>
 
     <div id="grid-container"></div>
@@ -102,140 +146,198 @@
         let activeIntervals = []; 
         let glitchableBlocks = [];
         let isPlaying = false;
+        let btnLayerElement = null;
 
-        // --- 1. MATEMATYKA IDEALNEGO WYPEŁNIENIA ---
-        function findBestDivisors(total, aspectTarget) {
-            let bestCols = 1;
-            let bestRows = total;
-            let minDiff = Infinity;
-            
-            // Szukamy takich dzielników liczby 7800, które najbliżej pasują do proporcji ekranu
-            for(let i = 1; i <= total; i++) {
-                if(total % i === 0) {
-                    let rows = total / i;
-                    let currentAspect = i / rows;
-                    let diff = Math.abs(currentAspect - aspectTarget);
-                    
-                    if(diff < minDiff) {
-                        minDiff = diff;
-                        bestCols = i;
-                        bestRows = rows;
-                    }
-                }
-            }
-            return { cols: bestCols, rows: bestRows };
-        }
-
-        function generateExactMatrix() {
-            // Czyszczenie
+        function generateClassicMatrix() {
             activeIntervals.forEach(clearInterval);
             activeIntervals = [];
             glitchableBlocks = [];
             gridContainer.innerHTML = '';
             
-            const W = window.innerWidth;
-            const H = window.innerHeight;
-            const screenAspect = W / H;
+            const testSpan = document.createElement('span');
+            testSpan.className = 'data-block';
+            testSpan.innerText = BASE_NUMBER;
+            gridContainer.appendChild(testSpan);
             
-            // Szacunkowa proporcja pojedynczego bloku "39000" w czcionce VT323
-            const charAspect = 0.45; 
-            const blockAspect = BASE_NUMBER.length * charAspect; 
-            const targetGridAspect = screenAspect / blockAspect;
+            const blockW = testSpan.getBoundingClientRect().width;
+            const blockH = testSpan.getBoundingClientRect().height;
+            gridContainer.innerHTML = '';
             
-            // Obliczenie idealnej siatki bez reszty
-            const gridDims = findBestDivisors(TOTAL_BLOCKS, targetGridAspect);
+            let cols = Math.ceil(window.innerWidth / blockW) + 2;
+            let rows = Math.ceil(window.innerHeight / blockH) + 2;
             
-            gridContainer.style.gridTemplateColumns = `repeat(${gridDims.cols}, 1fr)`;
-            gridContainer.style.gridTemplateRows = `repeat(${gridDims.rows}, 1fr)`;
+            if (cols % 2 === 0) cols++;
+            if (rows % 2 === 0) rows++;
             
-            // Dynamiczne wyliczenie rozmiaru czcionki, by idealnie wpasowała się w wymiary komórki
-            const cellW = W / gridDims.cols;
-            const cellH = H / gridDims.rows;
-            const maxFontW = cellW / blockAspect;
-            const maxFontH = cellH / 0.8; 
-            const finalFontSize = Math.min(maxFontW, maxFontH) * 0.95; 
+            gridContainer.style.width = `${cols * blockW}px`;
+            gridContainer.style.height = `${rows * blockH}px`;
             
-            gridContainer.style.fontSize = `${finalFontSize}px`;
+            const totalBlocks = cols * rows;
+            const centerIndex = Math.floor(totalBlocks / 2);
             
-            // Obliczenie fizycznego środka dla przycisku
-            const centerRow = Math.floor(gridDims.rows / 2);
-            const centerCol = Math.floor(gridDims.cols / 2);
-            const centerIndex = (centerRow * gridDims.cols) + centerCol;
-            
-            // Rysowanie 7800 bloków (równe 39 000 cyfr)
-            for(let i = 0; i < TOTAL_BLOCKS; i++) {
-                const span = document.createElement('span');
-                span.className = 'data-block';
-                
+            for(let i = 0; i < totalBlocks; i++) {
                 if (i === centerIndex) {
-                    span.innerText = isPlaying ? "STOP" : "PLAY";
-                    span.id = "playBtn";
+                    const wrapper = document.createElement('span');
+                    wrapper.className = 'data-block center-wrapper';
                     
-                    // Logika Play/Stop
-                    span.addEventListener('click', () => {
+                    const glitchLayer = document.createElement('span');
+                    glitchLayer.className = 'layer-glitch';
+                    glitchLayer.innerText = BASE_NUMBER;
+                    
+                    const btnLayer = document.createElement('span');
+                    btnLayer.className = 'layer-btn';
+                    btnLayer.innerText = isPlaying ? "STOP " : "PLAY ";
+                    btnLayerElement = btnLayer; 
+                    
+                    wrapper.appendChild(glitchLayer);
+                    wrapper.appendChild(btnLayer);
+                    gridContainer.appendChild(wrapper);
+
+                    runCenterGlitch(glitchLayer);
+
+                    wrapper.addEventListener('click', () => {
                         if (!isPlaying) {
-                            audio.play().catch(e => console.error("Audio:", e));
-                            span.innerText = "STOP";
+                            audio.play().catch(e => console.error(e));
+                            btnLayerElement.innerText = "STOP ";
                         } else {
                             audio.pause();
-                            span.innerText = "PLAY";
+                            btnLayerElement.innerText = "PLAY ";
                         }
                         isPlaying = !isPlaying;
+
+                        const docEl = document.documentElement;
+                        const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                        if (requestFS && !document.fullscreenElement) {
+                            requestFS.call(docEl).catch(err => console.warn("FS:", err));
+                        }
                     });
+
                 } else {
+                    const span = document.createElement('span');
+                    span.className = 'data-block';
                     span.innerText = BASE_NUMBER;
+                    span.dataset.busy = "false"; 
                     glitchableBlocks.push(span);
+                    gridContainer.appendChild(span);
                 }
-                
-                gridContainer.appendChild(span);
             }
             
-            startIkedaEngines();
+            startBackgroundEngines();
         }
 
-        // --- 2. LOSOWY GLITCH HAKERSKI ---
+        // --- SPECJALNY HAKER DLA CENTRUM ---
+        function runCenterGlitch(element) {
+            const targetVal = parseInt(BASE_NUMBER);
+            function runCycle() {
+                let currentVal = 0;
+                const step = Math.floor(Math.random() * 3500) + 1111; 
+                const frameRate = Math.floor(Math.random() * 20) + 15; 
+                
+                const interval = setInterval(() => {
+                    currentVal += step;
+                    if (currentVal >= targetVal) {
+                        currentVal = targetVal;
+                        element.innerText = currentVal.toString().padStart(5, '0');
+                        element.style.color = "";
+                        clearInterval(interval);
+                        setTimeout(runCycle, Math.random() * 2000 + 500);
+                    } else {
+                        element.innerText = currentVal.toString().padStart(5, '0');
+                        element.style.color = "#ffffff";
+                    }
+                }, frameRate);
+                activeIntervals.push(interval);
+            }
+            runCycle();
+        }
+
+        // --- SILNIK HAKERSKI DLA TŁA (CYFRY) ---
         function glitchRandomBlock() {
             if(glitchableBlocks.length === 0) return;
             
             const randomBlock = glitchableBlocks[Math.floor(Math.random() * glitchableBlocks.length)];
+            
+            if(randomBlock.dataset.busy === "true") return;
+
             let currentVal = 0;
             const targetVal = parseInt(BASE_NUMBER);
-            
             const step = Math.floor(Math.random() * 4000) + 1111; 
             const frameRate = Math.floor(Math.random() * (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)) + ANIMATION_SPEED_MIN;
 
             const interval = setInterval(() => {
                 currentVal += step;
-                
                 if (currentVal >= targetVal) {
                     currentVal = targetVal;
                     clearInterval(interval);
                     setTimeout(glitchRandomBlock, Math.random() * 100);
                 }
-                
-                randomBlock.innerText = currentVal.toString().padStart(BASE_NUMBER.length, '0');
+                randomBlock.innerText = currentVal.toString().padStart(5, '0');
                 randomBlock.style.color = currentVal < targetVal ? "#ffffff" : "";
                 randomBlock.style.opacity = currentVal < targetVal ? "1" : "0.8";
-                
             }, frameRate);
             
             activeIntervals.push(interval);
         }
 
-        function startIkedaEngines() {
+        // --- SILNIK ZDJĘĆ Z FILTREM ---
+        function flashRandomImage() {
+            if(glitchableBlocks.length === 0) return;
+            
+            const randomBlock = glitchableBlocks[Math.floor(Math.random() * glitchableBlocks.length)];
+            if(randomBlock.dataset.busy === "true") return;
+
+            randomBlock.dataset.busy = "true";
+            
+            const randomImg = IMAGE_FILES[Math.floor(Math.random() * IMAGE_FILES.length)];
+
+            randomBlock.innerText = "";
+            randomBlock.style.backgroundImage = `url('${randomImg}')`;
+            
+            // Dodajemy klasę aktywującą filtr (grayscale + contrast)
+            randomBlock.classList.add('img-active');
+
+            setTimeout(() => {
+                randomBlock.style.backgroundImage = "none";
+                randomBlock.classList.remove('img-active');
+
+                let currentVal = 0;
+                const targetVal = parseInt(BASE_NUMBER);
+                const step = Math.floor(Math.random() * 4000) + 1111;
+                const frameRate = Math.floor(Math.random() * (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)) + ANIMATION_SPEED_MIN;
+
+                const countingInterval = setInterval(() => {
+                    currentVal += step;
+                    if (currentVal >= targetVal) {
+                        currentVal = targetVal;
+                        clearInterval(countingInterval);
+                        randomBlock.dataset.busy = "false";
+                    }
+                    randomBlock.innerText = currentVal.toString().padStart(5, '0');
+                    randomBlock.style.color = currentVal < targetVal ? "#ffffff" : "";
+                    randomBlock.style.opacity = currentVal < targetVal ? "1" : "0.8";
+                }, frameRate);
+                
+                activeIntervals.push(countingInterval);
+
+            }, IMAGE_SHOW_TIME);
+        }
+
+        function startBackgroundEngines() {
             setTimeout(() => {
                 for(let i = 0; i < ACTIVE_THREADS; i++) {
                     setTimeout(glitchRandomBlock, Math.random() * 1000);
                 }
             }, 100);
+
+            const imageSpawner = setInterval(flashRandomImage, IMAGE_SPAWN_RATE);
+            activeIntervals.push(imageSpawner);
         }
 
-        // --- 3. START I REAKCJA NA OBRÓT ---
-        generateExactMatrix();
+        generateClassicMatrix();
         
         window.addEventListener('resize', () => {
             clearTimeout(window.resizeTimer);
-            window.resizeTimer = setTimeout(generateExactMatrix, 200);
+            window.resizeTimer = setTimeout(generateClassicMatrix, 200);
         });
     </script>
 </body>
