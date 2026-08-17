@@ -2,132 +2,218 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instalacja AV - Atacama</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instalacja AV - Atacama (CRT Matrix)</title>
+    
+    <!-- Import surowej, cyfrowej czcionki w stylu terminala z lat 80. -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    
     <style>
+        /* ========================================== */
+        /* --- PARAMETRY WIZUALNE (CSS) --- */
+        /* ========================================== */
         :root {
-            --global-object-size: 150px; 
-            --bg-color: #000000;         
-            --btn-color: #ffffff;        
-            --text-color: #000000;       
-            --info-text-color: #ffffff;  
+            --bg-color: #000000;
+            
+            /* Kolor lekko złamanej bieli, typowy dla starych monitorów */
+            --text-color: #e2e2e2; 
+            --font-main: 'VT323', monospace;
+            
+            /* ROZMIAR I GĘSTOŚĆ SIATKI */
+            --grid-font-size: 26px; 
+            --grid-line-height: 0.8; /* Ekstremalnie ciasne wiersze (jak na zdjęciu) */
+            --grid-letter-spacing: 0px; 
+            
+            /* Kolory przycisku (czarny tekst na białym tle - negatyw) */
+            --play-bg: #e2e2e2;
+            --play-text: #000000;
+        }
+        /* ========================================== */
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            margin: 0; 
+            padding: 0; 
+        }
+        
+        body, html {
+            width: 100%; 
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            color: var(--text-color);
         }
 
-        body {
-            margin: 0;
-            height: 100vh;
+        /* --- SIATKA DANYCH (CRT / IKEDA STYLE) --- */
+        #grid-container {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: var(--bg-color);
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
+            font-size: var(--grid-font-size);
+            line-height: var(--grid-line-height);
+            letter-spacing: var(--grid-letter-spacing);
+            
+            /* Subtelny efekt żarzenia się kineskopu / LED */
+            text-shadow: 0 0 3px rgba(226, 226, 226, 0.4);
+        }
+
+        #grid-container span {
+            display: inline-block;
+            width: 5ch; /* Sztywna szerokość dla dokładnie 5 cyfr "39000" */
+            opacity: 0.8; /* Bazowe przygaszenie tła */
+        }
+
+        /* --- PRZYCISK PLAY W CENTRUM --- */
+        #play-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            
+            /* Głęboki czarny cień oddzielający przycisk od ściany tekstu */
+            box-shadow: 0 0 30px #000000, 0 0 10px #000000;
         }
 
         #playBtn {
-            width: var(--global-object-size);
-            height: var(--global-object-size);
-            background-color: var(--btn-color);
-            color: var(--text-color);
+            background-color: var(--play-bg);
+            color: var(--play-text);
             border: none;
-            border-radius: 50%;
-            font-size: 24px;
-            font-weight: bold;
+            font-family: var(--font-main);
+            font-size: var(--grid-font-size);
+            
+            /* Przycisk przyjmuje wielkość dokładnie jednego bloku danych (5 cyfr) */
+            width: 5ch; 
+            height: 1em;
+            line-height: 1;
+            
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-transform: uppercase;
-            transition: transform 0.1s, opacity 0.3s;
-            z-index: 10;
+            
+            /* Zerujemy poświatę na tekście przycisku, żeby był ostry jak brzytwa */
+            text-shadow: none; 
         }
 
         #playBtn:active {
-            transform: scale(0.95);
-        }
-
-        #videoPlayer {
-            display: none;
-            max-width: 100%;
-            max-height: 100vh;
-            object-fit: contain;
-        }
-
-        #audioInfo {
-            display: none;
-            color: var(--info-text-color);
-            font-size: 16px;
-            text-align: center;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+            transform: scale(0.9);
         }
     </style>
 </head>
 <body>
 
     <script>
-        const VIDEO_FILE_URL = "ATACAMA_FINAL_SMOOTH_MORPH.mp4";
-        const AUDIO_FILE_URL = "Play Sustain instalacja 5_1.mp3"; 
-        const DEFAULT_TO_VIDEO_ON_UNKNOWN = true; 
+        // ==========================================
+        // --- PARAMETRY ANIMACJI (JS) ---
+        // ==========================================
+        const BASE_NUMBER = 39000;
+        
+        // Ilość jednoczesnych procesów hakerskiego odliczania na ekranie
+        const ACTIVE_THREADS = 20; 
+        
+        // Prędkość zmiany cyfr (w milisekundach - im mniej, tym wścieklej)
+        const ANIMATION_SPEED_MIN = 10; 
+        const ANIMATION_SPEED_MAX = 50; 
+        // ==========================================
     </script>
 
-    <button id="playBtn">PLAY</button>
+    <div id="grid-container"></div>
     
-    <video id="videoPlayer" playsinline loop muted></video>
-    <div id="audioInfo">Audio Experience<br><span style="font-size: 10px; opacity: 0.4; letter-spacing: 1px;">Słabsze łącze – ładujemy tylko dźwięk</span></div>
+    <div id="play-wrapper">
+        <button id="playBtn">PLAY</button>
+    </div>
 
     <script>
-        const btn = document.getElementById('playBtn');
-        const video = document.getElementById('videoPlayer');
-        const audioInfo = document.getElementById('audioInfo');
+        const gridContainer = document.getElementById('grid-container');
+        let activeIntervals = []; 
         
-        const audio = new Audio();
-        audio.loop = true;
-
-        let isFastConnection = DEFAULT_TO_VIDEO_ON_UNKNOWN;
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        
-        if (connection && connection.effectiveType) {
-            if (connection.effectiveType === '4g') {
-                isFastConnection = true;
-            } else {
-                isFastConnection = false;
+        // --- 1. WYPEŁNIANIE EKRANU MATRYCĄ ---
+        function generateGrid() {
+            activeIntervals.forEach(clearInterval);
+            activeIntervals = [];
+            gridContainer.innerHTML = '';
+            
+            const testSpan = document.createElement('span');
+            testSpan.innerText = BASE_NUMBER.toString();
+            gridContainer.appendChild(testSpan);
+            
+            const spanWidth = testSpan.offsetWidth;
+            const spanHeight = testSpan.offsetHeight;
+            
+            const cols = Math.ceil(window.innerWidth / spanWidth);
+            const rows = Math.ceil(window.innerHeight / spanHeight);
+            const totalBlocks = (cols * rows) + (cols * 2); // Zapas wierszy na dole
+            
+            for(let i = 0; i < totalBlocks - 1; i++) {
+                const span = document.createElement('span');
+                span.innerText = BASE_NUMBER.toString();
+                gridContainer.appendChild(span);
             }
+            
+            startIkedaEngines();
         }
 
-        let isPlaying = false;
+        // --- 2. SILNIK LOSOWYCH PRZELICZEŃ ---
+        function glitchRandomBlock() {
+            const spans = gridContainer.querySelectorAll('span');
+            if(spans.length === 0) return;
+            
+            const randomBlock = spans[Math.floor(Math.random() * spans.length)];
+            let currentVal = 0;
+            
+            const step = Math.floor(Math.random() * 4000) + 1111; 
+            const frameRate = Math.floor(Math.random() * (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)) + ANIMATION_SPEED_MIN;
 
-        btn.addEventListener('click', () => {
-            if (!isPlaying) {
-                audio.src = AUDIO_FILE_URL;
-                audio.play();
+            const interval = setInterval(() => {
+                currentVal += step;
+                
+                if (currentVal >= BASE_NUMBER) {
+                    currentVal = BASE_NUMBER;
+                    clearInterval(interval);
+                    // Odpalenie w kolejnym losowym miejscu po zakończeniu
+                    setTimeout(glitchRandomBlock, Math.random() * 50);
+                }
+                
+                randomBlock.innerText = currentVal.toString().padStart(5, '0');
+                
+                // Animujący się blok staje się agresywnie biały i jaśniejszy
+                randomBlock.style.color = currentVal < BASE_NUMBER ? "#ffffff" : "";
+                randomBlock.style.opacity = currentVal < BASE_NUMBER ? "1" : "0.8";
+                
+            }, frameRate);
+            
+            activeIntervals.push(interval);
+        }
 
-                if (isFastConnection) {
-                    video.src = VIDEO_FILE_URL;
-                    video.style.display = 'block';
-                    btn.style.display = 'none';
-                    video.play();
-                } else {
-                    audioInfo.style.display = 'block';
-                    btn.innerText = "STOP";
+        function startIkedaEngines() {
+            setTimeout(() => {
+                for(let i = 0; i < ACTIVE_THREADS; i++) {
+                    setTimeout(glitchRandomBlock, Math.random() * 1000);
                 }
-            } else {
-                audio.pause();
-                if (isFastConnection) {
-                    video.pause();
-                } else {
-                    btn.innerText = "PLAY";
-                }
-            }
-            isPlaying = !isPlaying;
+            }, 100);
+        }
+
+        // --- 3. INICJALIZACJA ---
+        generateGrid();
+        
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(generateGrid, 200);
         });
 
-        video.addEventListener('click', () => {
-            if (video.paused) {
-                video.play();
-                audio.play();
-            } else {
-                video.pause();
-                audio.pause();
-            }
+        // --- 4. ZACHOWANIE PRZYCISKU ---
+        const playBtn = document.getElementById('playBtn');
+        playBtn.addEventListener('click', () => {
+            playBtn.innerText = "WAIT";
+            playBtn.style.backgroundColor = "#444444";
+            playBtn.style.color = "#000000";
         });
     </script>
 </body>
