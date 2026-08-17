@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Instalacja AV - Atacama (Fullscreen Experience)</title>
+    <title>Instalacja AV - Atacama (Ostateczny Matrix)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     
@@ -20,13 +20,13 @@
             --grid-font-size: 22px; 
             --grid-line-height: 1.1; 
             
-            /* Wygląd Przycisku (wielkość 5 znaków = "39000") */
+            /* Wygląd Przycisku (wielkość 5 znaków) */
             --play-bg: #e2e2e2;
             --play-text: #000000;
 
             /* ZDJĘCIA: Czarno-białe z podbitym kontrastem */
             --image-filter: grayscale(100%) contrast(140%);
-            /* Jak długo trwa płynne przenikanie zdjęć? */
+            /* Czas płynnego przenikania zdjęć */
             --crossfade-duration: 3s; 
         }
         /* ========================================== */
@@ -35,7 +35,7 @@
         
         body, html {
             width: 100vw; height: 100vh;
-            overflow: hidden; 
+            overflow: hidden; /* ODCINA WSZYSTKO CO WYCHODZI POZA EKRAN */
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
@@ -43,9 +43,14 @@
 
         /* --- WARSTWA 1: SIATKA CYFR --- */
         #grid-container {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            display: flex; flex-wrap: wrap; align-content: flex-start;
+            position: absolute; 
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            /* Generujemy matrycę 115% wielkości ekranu, żeby pokryła każdą szczelinę */
+            width: 115vw; 
+            height: 115vh;
+            display: flex; flex-wrap: wrap; 
+            justify-content: center; align-content: center;
             text-shadow: 0 0 3px rgba(226, 226, 226, 0.4);
             z-index: 10;
         }
@@ -55,7 +60,6 @@
             width: 5ch; height: var(--grid-line-height); line-height: var(--grid-line-height);
             font-size: var(--grid-font-size);
             opacity: 0.8;
-            /* To płynne przejście przyda się przy wygaszaniu cyfr */
             transition: opacity 1.5s ease-out, color 0.1s; 
         }
 
@@ -64,7 +68,7 @@
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 20;
-            pointer-events: none; /* Żeby nie blokowało kliknięć w ekran */
+            pointer-events: none; 
         }
 
         .slide {
@@ -87,7 +91,7 @@
             position: fixed; 
             top: 50%; left: 50%; 
             transform: translate(-50%, -50%);
-            z-index: 9999; /* ZAWSZE NA SAMEJ GÓRZE */
+            z-index: 9999; 
             
             width: 5ch; height: 1em;
             display: flex; align-items: center; justify-content: center;
@@ -100,15 +104,13 @@
             line-height: 1;
             cursor: pointer;
             
-            /* Wolne, miarowe mruganie */
             animation: pulseBtn 3s infinite ease-in-out;
-            /* Lekki cień, żeby zawsze odcinał się od tła / zdjęć */
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
 
         @keyframes pulseBtn {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; } /* Przycisk lekko gaśnie, ale nie znika całkiem */
+            50% { opacity: 0.3; } 
         }
     </style>
 </head>
@@ -127,8 +129,8 @@
         const ANIMATION_SPEED_MAX = 40; 
         
         // --- Pełnoekranowe Zdjęcia ---
-        const DELAY_BEFORE_IMAGES = 3000; // 3 sekundy czarnego ekranu zanim wejdą zdjęcia
-        const IMAGE_SHOW_TIME = 6000;     // Co ile milisekund zmienia się zdjęcie (6000 = 6 sekund)
+        const DELAY_BEFORE_IMAGES = 3000; // 3 sekundy blackoutu przed zdjęciami
+        const IMAGE_SHOW_TIME = 6000;     // Czas ekspozycji jednego zdjęcia (6 sekund)
         // ==========================================
 
         const IMAGE_FILES = [];
@@ -142,7 +144,6 @@
     <div id="grid-container"></div>
     
     <div id="slider-container">
-        <!-- Dwa bufory na zdjęcia do płynnego przenikania -->
         <div id="slideA" class="slide"></div>
         <div id="slideB" class="slide"></div>
     </div>
@@ -161,15 +162,14 @@
         let activeIntervals = []; 
         let glitchableBlocks = [];
         let isPlaying = false;
-        let isGridActive = true; // Zmienna sprawdzająca czy cyfry mają się animować
+        let isGridActive = true; 
         
-        // Zmienne do slajdera
         let currentSlide = slideA;
         let nextSlide = slideB;
         let sliderLoop = null;
         let initialDelayTimeout = null;
 
-        // --- 1. GENEROWANIE SIATKI ---
+        // --- 1. GENEROWANIE SIATKI (GWARANCJA WYPEŁNIENIA) ---
         function generateGrid() {
             gridContainer.innerHTML = '';
             glitchableBlocks = [];
@@ -183,8 +183,12 @@
             const blockH = testSpan.getBoundingClientRect().height;
             gridContainer.innerHTML = '';
             
-            let cols = Math.ceil(window.innerWidth / blockW) + 2;
-            let rows = Math.ceil(window.innerHeight / blockH) + 2;
+            // Wymuszamy o 15% szersze i wyższe pole niż sam ekran, by uciąć brzegi z każdej strony
+            const safeWidth = window.innerWidth * 1.15;
+            const safeHeight = window.innerHeight * 1.15;
+            
+            const cols = Math.ceil(safeWidth / blockW);
+            const rows = Math.ceil(safeHeight / blockH);
             const totalBlocks = cols * rows;
             
             for(let i = 0; i < totalBlocks; i++) {
@@ -198,7 +202,6 @@
 
         // --- 2. SILNIK GLITCH (CYFRY) ---
         function glitchRandomBlock() {
-            // Jeśli siatka jest ukryta (bo leci wideo/audio), nie pożeramy mocy na obliczenia
             if(!isGridActive || glitchableBlocks.length === 0) return;
             
             const randomBlock = glitchableBlocks[Math.floor(Math.random() * glitchableBlocks.length)];
@@ -244,16 +247,13 @@
             nextSlide.classList.add('active');
             currentSlide.classList.remove('active');
             
-            // Podmiana ról buforów
             let temp = currentSlide;
             currentSlide = nextSlide;
             nextSlide = temp;
         }
 
         function startImagesLoop() {
-            // Pierwsze zdjęcie
             changeSlide();
-            // Pętla kolejnych zdjęć
             sliderLoop = setInterval(changeSlide, IMAGE_SHOW_TIME);
         }
 
@@ -266,46 +266,37 @@
         // --- 4. AKCJA PLAY / STOP ---
         playBtn.addEventListener('click', () => {
             if (!isPlaying) {
-                // *** START DOŚWIADCZENIA ***
                 isPlaying = true;
                 playBtn.innerText = "STOP ";
                 
-                // Audio startuje natychmiast po kliknięciu
                 audio.play().catch(e => console.error(e));
 
-                // Wymuszenie Fullscreen
                 const docEl = document.documentElement;
                 const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
                 if (requestFS && !document.fullscreenElement) {
                     requestFS.call(docEl).catch(err => console.warn("FS:", err));
                 }
 
-                // 1. Zatrzymujemy maszyny cyfr i robimy losowy Fade-Out cyfr (Blackout)
                 stopGridEngines();
                 glitchableBlocks.forEach(block => {
                     setTimeout(() => {
                         block.style.opacity = '0';
-                    }, Math.random() * 1500); // Cyfry znikają losowo przez 1.5 sekundy
+                    }, Math.random() * 1500); 
                 });
 
-                // 2. Czekamy pełne 3 sekundy i wrzucamy zdjęcia
                 initialDelayTimeout = setTimeout(() => {
                     startImagesLoop();
                 }, DELAY_BEFORE_IMAGES);
 
             } else {
-                // *** POWRÓT DO EKRANU STARTOWEGO ***
                 isPlaying = false;
                 playBtn.innerText = "PLAY ";
                 audio.pause();
 
-                // 1. Zatrzymujemy zdjęcia i czyścimy timeouty
                 clearTimeout(initialDelayTimeout);
                 stopImagesLoop();
 
-                // 2. Łagodnie odsłaniamy cyfry
                 glitchableBlocks.forEach(block => {
-                    // Resetujemy tekst do 39000
                     block.innerText = BASE_NUMBER; 
                     block.style.color = "";
                     
@@ -314,7 +305,6 @@
                     }, Math.random() * 1000);
                 });
 
-                // 3. Wznawiamy ruch siatki po odsłonięciu
                 setTimeout(startGridEngines, 1000);
             }
         });
