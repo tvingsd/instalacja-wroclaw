@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Instalacja AV - Atacama (Perfect Sync)</title>
+    <title>Instalacja AV - Atacama (Typewriter Sequence)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     
@@ -37,12 +37,11 @@
             font-family: var(--font-main);
         }
 
-        /* --- WARSTWA 1: MATEMATYCZNA SIATKA CSS GRID --- */
+        /* --- WARSTWA 1: MATEMATYCZNA SIATKA --- */
         #grid-container {
-            position: absolute; 
-            top: 50%; left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            display: grid; /* Zmiana na twardy Grid */
+            display: grid; 
             justify-content: center; align-content: center;
             text-shadow: 0 0 3px rgba(226, 226, 226, 0.4);
             z-index: 10;
@@ -53,15 +52,13 @@
             width: 5ch; height: var(--grid-line-height); line-height: var(--grid-line-height);
             font-size: var(--grid-font-size);
             opacity: 0.8;
-            /* Zostawiamy bazowy color, opacity będzie sterowane z JS dla dokładnego timingu */
-            transition: color 0.1s; 
+            transition: opacity 1.5s ease-out, color 0.1s; 
+            overflow: hidden; white-space: nowrap;
         }
 
-        /* --- WARSTWA CENTRUM (PRZYCISK W GRIDZIE) --- */
+        /* --- WARSTWA CENTRUM (PRZYCISK) --- */
         .center-wrapper {
-            position: relative;
-            cursor: pointer;
-            opacity: 1 !important; 
+            position: relative; cursor: pointer; opacity: 1 !important; 
         }
 
         .layer-glitch {
@@ -76,9 +73,7 @@
             display: flex; align-items: center; justify-content: center;
             background-color: var(--play-bg);
             color: var(--play-text);
-            text-shadow: none; 
-            font-weight: bold;
-            /* Puls: 1 sek zapalanie, 1 sek gaśnięcie = 2s cykl na ease-in-out */
+            text-shadow: none; font-weight: bold;
             animation: fastPulse 2s infinite ease-in-out;
             pointer-events: none; 
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
@@ -89,7 +84,31 @@
             50% { opacity: 0; } 
         }
 
-        /* --- WARSTWA 2: PEŁNOEKRANOWE ZDJĘCIA --- */
+        /* --- WARSTWA 2: TYPEWRITER TEXT --- */
+        #typewriter-container {
+            position: absolute; 
+            /* Ustawiony wyżej, aby nie zasłaniał mrugającego na środku STOP */
+            top: 30%; left: 0;
+            width: 100%; 
+            display: flex; align-items: center; justify-content: center;
+            z-index: 25;
+            font-size: 34px; /* Większy font dla czytelności narracji */
+            letter-spacing: 2px;
+            pointer-events: none;
+            opacity: 1;
+            text-transform: uppercase;
+        }
+
+        .cursor {
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        /* --- WARSTWA 3: PEŁNOEKRANOWE ZDJĘCIA --- */
         #slider-container {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -100,9 +119,7 @@
         .slide {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
-            background-size: cover; 
-            background-position: center;
-            background-repeat: no-repeat;
+            background-size: cover; background-position: center; background-repeat: no-repeat;
             opacity: 0; 
             transition: opacity var(--crossfade-duration) ease-in-out;
             filter: var(--image-filter);
@@ -124,7 +141,8 @@
         const ANIMATION_SPEED_MIN = 10; 
         const ANIMATION_SPEED_MAX = 40; 
         
-        const IMAGE_SHOW_TIME = 6000; // Czas ekspozycji jednego zdjęcia (6 sekund)
+        const IMAGE_SHOW_TIME = 6000; 
+        const TYPEWRITER_SPEED = 60; // Prędkość pisania liter (w ms)
         // ==========================================
 
         const IMAGE_FILES = [];
@@ -135,6 +153,8 @@
 
     <div id="grid-container"></div>
     
+    <div id="typewriter-container"></div>
+
     <div id="slider-container">
         <div id="slideA" class="slide"></div>
         <div id="slideB" class="slide"></div>
@@ -142,6 +162,7 @@
 
     <script>
         const gridContainer = document.getElementById('grid-container');
+        const typewriterContainer = document.getElementById('typewriter-container');
         const slideA = document.getElementById('slideA');
         const slideB = document.getElementById('slideB');
         
@@ -149,7 +170,7 @@
         audio.src = AUDIO_FILE_URL;
         audio.loop = true;
         audio.crossOrigin = "anonymous";
-        audio.volume = 0; // Startujemy od zera
+        audio.volume = 0; 
 
         let activeIntervals = []; 
         let glitchableBlocks = [];
@@ -160,8 +181,27 @@
         let currentSlide = slideA;
         let nextSlide = slideB;
         let sliderLoop = null;
-        let timeoutFlow = null;
         let fadeAudioInterval = null;
+        
+        // Flaga do przerwania sekwencji jeśli ktoś wciśnie STOP w trakcie pisania
+        let abortSequence = false;
+
+        // --- POMOCNICZE FUNKCJE ASYNCHRONICZNE ---
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function typeText(phrase) {
+            typewriterContainer.innerHTML = '<span id="tw-text"></span><span class="cursor">|</span>';
+            const twText = document.getElementById('tw-text');
+            for (let i = 0; i < phrase.length; i++) {
+                if(abortSequence) return;
+                twText.innerHTML += phrase[i];
+                await sleep(TYPEWRITER_SPEED);
+            }
+        }
+
+        async function clearText() {
+            typewriterContainer.innerHTML = '';
+        }
 
         // --- 1. GENEROWANIE IDEALNEJ SIATKI ---
         function generateGrid() {
@@ -177,15 +217,12 @@
             const blockH = testSpan.getBoundingClientRect().height;
             gridContainer.innerHTML = '';
             
-            // Wymuszamy bezpieczny margines za ekran
             const safeWidth = window.innerWidth * 1.15;
             const safeHeight = window.innerHeight * 1.15;
             
-            // Obliczamy DOKŁADNĄ liczbę kolumn i rzędów
             let cols = Math.ceil(safeWidth / blockW);
             let rows = Math.ceil(safeHeight / blockH);
             
-            // Gwarancja IDEALNEGO ŚRODKA - liczby nieparzyste
             if (cols % 2 === 0) cols++;
             if (rows % 2 === 0) rows++;
             
@@ -193,11 +230,10 @@
             gridContainer.style.gridTemplateRows = `repeat(${rows}, ${blockH}px)`;
             
             const totalBlocks = cols * rows;
-            const centerIndex = Math.floor(totalBlocks / 2); // To punkt idealnie na środku matrycy
+            const centerIndex = Math.floor(totalBlocks / 2); 
             
             for(let i = 0; i < totalBlocks; i++) {
                 if (i === centerIndex) {
-                    // --- ZINTEGROWANY PRZYCISK PLAY ---
                     const wrapper = document.createElement('span');
                     wrapper.className = 'data-block center-wrapper';
                     wrapper.style.zIndex = "100";
@@ -216,10 +252,7 @@
                     gridContainer.appendChild(wrapper);
 
                     runCenterGlitch(glitchLayer);
-
-                    // --- LOGIKA KLIKNIĘCIA ---
                     wrapper.addEventListener('click', handlePlayStop);
-
                 } else {
                     const span = document.createElement('span');
                     span.className = 'data-block';
@@ -230,7 +263,7 @@
             }
         }
 
-        // --- HAKERY ---
+        // --- SILNIKI HAKERSKIE ---
         function runCenterGlitch(element) {
             const targetVal = parseInt(BASE_NUMBER);
             function runCycle() {
@@ -284,6 +317,7 @@
 
         // --- ZDJĘCIA ---
         function changeSlide() {
+            if(abortSequence) return;
             const randomImg = IMAGE_FILES[Math.floor(Math.random() * IMAGE_FILES.length)];
             nextSlide.style.backgroundImage = `url('${randomImg}')`;
             nextSlide.classList.add('active');
@@ -293,14 +327,70 @@
             nextSlide = temp;
         }
 
+        // --- SEKWENCJA GŁÓWNA ---
+        async function runMainSequence() {
+            abortSequence = false;
+
+            // Fade in audio (3 sekundy ramp-up)
+            clearInterval(fadeAudioInterval);
+            let vol = 0;
+            fadeAudioInterval = setInterval(() => {
+                vol += 1 / 60; 
+                if (vol >= 1) { audio.volume = 1; clearInterval(fadeAudioInterval); } 
+                else { audio.volume = vol; }
+            }, 50);
+
+            // Blackout start
+            await sleep(1500);
+            if(abortSequence) return;
+
+            // Narracja 1
+            await typeText("IN THE ATACAMA DESERT");
+            await sleep(1500);
+            await clearText();
+            if(abortSequence) return;
+            await sleep(800);
+
+            // Narracja 2
+            await typeText("THERE ARE CURRENTLY");
+            await sleep(1500);
+            await clearText();
+            if(abortSequence) return;
+            await sleep(800);
+
+            // Narracja 3
+            await typeText("AROUND 39,000 TONS");
+            await sleep(1500);
+            await clearText();
+            if(abortSequence) return;
+            await sleep(800);
+
+            // Narracja 4
+            await typeText("OF DISCARDED FAST FASHION");
+            await sleep(1800);
+            await clearText();
+            if(abortSequence) return;
+            await sleep(800);
+            
+            // Narracja 5
+            await typeText("GROWING BY OVER 100 TONS EVERY DAY");
+            await sleep(2200);
+            await clearText();
+            if(abortSequence) return;
+            await sleep(1000); // Finałowy blackout przed zdjęciami
+
+            // Wejście slajdera
+            changeSlide();
+            sliderLoop = setInterval(changeSlide, IMAGE_SHOW_TIME);
+        }
+
         // --- LOGIKA PLAY / STOP ---
         function handlePlayStop() {
             if (!isPlaying) {
-                // *** 1. START DOŚWIADCZENIA ***
+                // START
                 isPlaying = true;
                 btnLayerElement.innerText = "STOP ";
                 
-                // Obejście blokady Apple - odtwarzamy od razu wyciszone po kliknięciu
                 audio.volume = 0;
                 audio.play().catch(e => console.error(e));
 
@@ -308,42 +398,27 @@
                 const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
                 if (requestFS && !document.fullscreenElement) requestFS.call(docEl);
 
-                // Zatrzymanie maszyn i Random Fade-Out (trwa max 1.5s)
+                // Zatrzymanie maszyn i Fade-Out Cyfr
                 isGridActive = false;
                 glitchableBlocks.forEach(block => {
-                    block.style.transition = "opacity 1.5s ease-out, color 0.1s";
-                    setTimeout(() => { block.style.opacity = '0'; }, Math.random() * 1500); 
+                    block.style.opacity = '0';
                 });
 
-                // Czekamy 2500ms (1.5s wygaszanie + 1.0s absolutny blackout)
-                timeoutFlow = setTimeout(() => {
-                    // START AUDIO RAMP-UP (3s = 60 kroków po 50ms)
-                    clearInterval(fadeAudioInterval);
-                    let vol = 0;
-                    fadeAudioInterval = setInterval(() => {
-                        vol += 1 / 60; 
-                        if (vol >= 1) { audio.volume = 1; clearInterval(fadeAudioInterval); } 
-                        else { audio.volume = vol; }
-                    }, 50);
-
-                    // Włączenie pokazu slajdów (też wchodzą na 3s fade in przez CSS)
-                    changeSlide();
-                    sliderLoop = setInterval(changeSlide, IMAGE_SHOW_TIME);
-                }, 2500); 
+                runMainSequence();
 
             } else {
-                // *** 2. STOP (POWRÓT DO MATRYCY) ***
+                // STOP (POWRÓT)
                 isPlaying = false;
+                abortSequence = true; // Przerywa pisanie i zdjęcia
                 btnLayerElement.innerText = "PLAY ";
 
-                clearTimeout(timeoutFlow);
                 clearInterval(sliderLoop);
+                clearText(); // Czyści ewentualny niedokończony tekst
                 
-                // Zatrzymanie zdjęć (Fade Out przez klasę zajmie równe 3 sekundy)
                 slideA.classList.remove('active');
                 slideB.classList.remove('active');
 
-                // AUDIO RAMP-DOWN (3s)
+                // AUDIO RAMP-DOWN
                 clearInterval(fadeAudioInterval);
                 let vol = audio.volume;
                 fadeAudioInterval = setInterval(() => {
@@ -355,22 +430,22 @@
                     } else { audio.volume = vol; }
                 }, 50);
 
-                // FADE IN CYFR (3s)
+                // FADE IN CYFR
                 glitchableBlocks.forEach(block => {
                     block.innerText = BASE_NUMBER; 
                     block.style.color = "";
-                    block.style.transition = "opacity 3s ease-out, color 0.1s"; // Ramp-up na wzrok
                     setTimeout(() => { block.style.opacity = '0.8'; }, 100); 
                 });
 
-                // Po 3 sekundach pełnego pojawienia ruszają znów silniki hakerskie
                 setTimeout(startGridEngines, 3000);
             }
         }
 
-        // --- INICJALIZACJA ---
-        generateGrid();
-        startGridEngines();
+        // --- INICJALIZACJA - GWARANCJA WCZYTANIA FONTU ---
+        document.fonts.ready.then(() => {
+            generateGrid();
+            startGridEngines();
+        });
         
         window.addEventListener('resize', () => {
             if(!isPlaying) {
