@@ -3,117 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Instalacja - ALVA NOTO TRIBUTE</title>
+    <title>Instalacja - RYOJI IKEDA TRIBUTE</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
             width: 100vw; height: 100vh; overflow: hidden;
             background-color: #000; color: #fff;
-            /* Surowa, szwajcarska geometria */
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
-            font-weight: 900; 
-            text-transform: uppercase;
+            /* Monospace, ale ostra i techniczna */
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 14px; line-height: 1; letter-spacing: 1px;
+            -webkit-text-size-adjust: none;
         }
-        
-        #grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            width: 100vw; height: 100vh;
-            gap: 2px; background: #222; /* Linie siatki */
-            border: 2px solid #222;
+        #matrix {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden; word-break: break-all; opacity: 0.6;
         }
-        
-        .hex-block {
-            background: #000;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5vw; letter-spacing: 2px;
-            color: #555; /* Zgaszony, techniczny kolor */
-        }
-
         #ui {
-            position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
-            font-size: 18px; padding: 15px 40px; border: 2px solid #fff;
-            background: #000; color: #fff; cursor: pointer; z-index: 100;
-            letter-spacing: 4px;
-        }
-        
-        #center-data {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 6vw; text-align: center; width: 100%;
-            z-index: 200; display: none; background: #000; padding: 20px 0;
-            letter-spacing: -2px; /* Zbite litery */
+            font-size: 24px; font-weight: bold; background: #fff; color: #000;
+            padding: 5px 20px; cursor: pointer; z-index: 100;
         }
-
+        #narrative {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 8vw; font-weight: bold; text-align: center; white-space: nowrap;
+            z-index: 200; display: none; background: #fff; color: #000; padding: 0 20px;
+        }
         #slider {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
-            /* Efekt Threshold (progowy) - ekstremalny kontrast */
-            filter: grayscale(100%) contrast(1000%) brightness(1.2);
+            filter: grayscale(100%) contrast(200%);
+            /* Ikeda cięcie na pasy */
+            clip-path: polygon(10% 0, 20% 0, 20% 100%, 10% 100%, 30% 0, 32% 0, 32% 100%, 30% 100%, 50% 0, 55% 0, 55% 100%, 50% 100%, 80% 0, 85% 0, 85% 100%, 80% 100%);
             display: none; z-index: 50;
-            mix-blend-mode: exclusion; /* Noto blendowanie warstw */
         }
+        /* Agresywny stroboskop */
+        .strobe { animation: strobe 0.1s infinite; }
+        @keyframes strobe { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-    <div id="grid"></div>
-    <div id="center-data"></div>
+    <div id="matrix"></div>
+    <div id="ui">EXECUTE</div>
+    <div id="narrative"></div>
     <div id="slider"></div>
-    <div id="ui">SYSTEM.START()</div>
 
     <script>
         const audio = new Audio("Play Sustain instalacja 5_1.mp3");
         audio.loop = true; audio.crossOrigin = "anonymous";
         const images = []; for(let i=12; i<=21; i++) images.push(`Pustynia Atakama${i}.jpeg`);
         
-        const grid = document.getElementById('grid');
+        let matrixActive = true;
+        const matrixEl = document.getElementById('matrix');
         const ui = document.getElementById('ui');
-        const centerData = document.getElementById('center-data');
+        const narrative = document.getElementById('narrative');
         const slider = document.getElementById('slider');
-
-        // Generowanie stałych bloków HEX
-        for(let i=0; i<32; i++) {
-            const b = document.createElement('div');
-            b.className = 'hex-block';
-            b.innerText = '0x' + Math.floor(Math.random()*16777215).toString(16).toUpperCase().padStart(6, '0');
-            grid.appendChild(b);
+        
+        // Silnik wysokiej częstotliwości (60fps data stream)
+        function generateDataString() {
+            let s = '';
+            for(let i=0; i<800; i++) s += Math.random() > 0.5 ? '39000 ' : '00000 ';
+            return s;
         }
+        
+        function drawFrame() {
+            if(matrixActive) matrixEl.innerText = generateDataString();
+            requestAnimationFrame(drawFrame);
+        }
+        drawFrame(); // Start data stream
 
         const sleep = ms => new Promise(r => setTimeout(r, ms));
+        
+        async function flashText(text, duration) {
+            narrative.innerText = text;
+            narrative.style.display = "block";
+            // Inwersja tła na błysk (Ikeda style)
+            document.body.style.backgroundColor = "#fff";
+            document.body.style.color = "#000";
+            await sleep(duration);
+            narrative.style.display = "none";
+            document.body.style.backgroundColor = "#000";
+            document.body.style.color = "#fff";
+            await sleep(400); // Twarda czarna przerwa
+        }
 
         ui.addEventListener('click', async () => {
-            if(ui.innerText === "SYSTEM.START()") {
+            if(ui.innerText === "EXECUTE") {
                 ui.style.display = "none";
-                audio.volume = 1; audio.play();
-
-                // Brak fade'ów - twarde bloki danych
+                audio.volume = 1; audio.play(); // Twardy start dźwięku
+                
+                matrixActive = false; matrixEl.innerText = "";
                 await sleep(1000);
-                centerData.style.display = "block";
-                
-                centerData.innerText = "ATACAMA_DESERT [39.000T]";
-                await sleep(2000);
-                
-                centerData.innerText = "STATUS: FAST_FASHION";
-                await sleep(2000);
-                
-                centerData.innerText = "RATE: +100T/DAY";
-                await sleep(2000);
-                
-                centerData.innerText = "0xFFFFFF"; // Biały szum
-                await sleep(500);
-                centerData.style.display = "none";
 
-                // Pokaz zdjęć
+                // Narracja stroboskopowa
+                await flashText("ATACAMA", 150);
+                await flashText("39,000 TONS", 150);
+                await flashText("FAST FASHION", 150);
+                await flashText("+100 TONS / DAY", 150);
+
+                // Odpalenie poszatkowanych zdjęć ze stroboskopem
                 slider.style.display = "block";
+                slider.classList.add("strobe");
                 setInterval(() => {
                     slider.style.backgroundImage = `url('${images[Math.floor(Math.random()*images.length)]}')`;
-                    // Rotacja i inwersja co zmianę
-                    slider.style.transform = Math.random() > 0.5 ? "scaleX(-1)" : "scaleX(1)";
-                }, 4000);
+                    // Dynamiczna zmiana cięć
+                    const r1 = Math.random()*20; const r2 = Math.random()*20 + 30; const r3 = Math.random()*20 + 70;
+                    slider.style.clipPath = `polygon(${r1}% 0, ${r1+5}% 0, ${r1+5}% 100%, ${r1}% 100%, ${r2}% 0, ${r2+2}% 0, ${r2+2}% 100%, ${r2}% 100%, ${r3}% 0, ${r3+10}% 0, ${r3+10}% 100%, ${r3}% 100%)`;
+                }, 300);
 
-                setTimeout(() => { ui.innerText = "SYSTEM.HALT()"; ui.style.display = "block"; }, 2000);
+                setTimeout(() => { ui.innerText = "TERMINATE"; ui.style.display = "block"; ui.style.background = "red"; ui.style.color = "white"; }, 2000);
             } else {
-                window.location.reload();
+                window.location.reload(); // Twardy reset
             }
         });
     </script>
