@@ -3,473 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Instalacja AV - Atacama (Perfect Matrix & Story)</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    
+    <title>Instalacja - ALVA NOTO TRIBUTE</title>
     <style>
-        /* ========================================== */
-        /* --- PARAMETRY KONFIGURACYJNE (CSS) --- */
-        /* ========================================== */
-        :root {
-            --bg-color: #000000;
-            --text-color: #e2e2e2; 
-            --font-main: 'VT323', monospace;
-            
-            --grid-font-size: 22px; 
-            
-            --play-bg: #e2e2e2;
-            --play-text: #000000;
-
-            --image-filter: grayscale(100%) contrast(140%);
-            --crossfade-duration: 3s; 
-        }
-        /* ========================================== */
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        
-        /* Blokada skalowania tekstu przez iOS */
-        html, body {
-            width: 100vw; height: 100vh;
-            overflow: hidden; 
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-main);
-            -webkit-text-size-adjust: none; 
-        }
-
-        /* --- WARSTWA 1: MATEMATYCZNA SIATKA ABSOLUTNA --- */
-        #grid-container {
-            position: absolute; 
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            /* Szerokość i wysokość zostaną nadane przez JS */
-            z-index: 10;
-        }
-
-        .data-block {
-            position: absolute; /* Gwarancja braku nachodzenia na siebie! */
-            display: flex; align-items: center; justify-content: center;
-            font-size: var(--grid-font-size);
-            letter-spacing: 2px; /* Lekki oddech dla czytelności */
-            opacity: 0; /* Startują jako niewidoczne */
-            transition: opacity 0.5s ease-out; 
-            white-space: nowrap;
-        }
-
-        /* --- WARSTWA 2: PRZYCISKI W CENTRUM --- */
-        #playBtn, #stopBtn {
-            position: absolute; 
-            display: flex; align-items: center; justify-content: center;
-            background-color: var(--play-bg);
-            color: var(--play-text);
-            font-family: var(--font-main);
-            font-size: var(--grid-font-size);
-            letter-spacing: 2px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 100;
-            box-shadow: 0 0 15px rgba(0,0,0,0.8);
-        }
-
-        #playBtn {
-            animation: fastPulse 2s infinite ease-in-out;
-        }
-
-        #stopBtn {
-            display: none; 
-            /* Stop jest przypięty centralnie do ekranu, nie do siatki */
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 5px 15px; /* Minimalistyczny margines dla przycisku */
-        }
-
-        /* Klasa dodawana przez JS w momencie startu zdjęć: 5s widoczny, 5s ukryty */
-        .pulse-5s {
-            animation: pulse5s 10s infinite ease-in-out;
-        }
-
-        @keyframes fastPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; } 
-        }
-
-        @keyframes pulse5s {
-            0%, 40% { opacity: 1; pointer-events: auto; }
-            50%, 90% { opacity: 0; pointer-events: none; }
-            100% { opacity: 1; pointer-events: auto; }
-        }
-
-        /* --- WARSTWA 3: TYPEWRITER TEXT --- */
-        #typewriter-container {
-            position: fixed; 
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%; 
-            text-align: center;
-            z-index: 25;
-            font-size: 32px; 
-            letter-spacing: 2px;
-            pointer-events: none;
-            opacity: 1;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100vw; height: 100vh; overflow: hidden;
+            background-color: #000; color: #fff;
+            /* Surowa, szwajcarska geometria */
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            font-weight: 900; 
             text-transform: uppercase;
         }
-
-        .cursor {
-            animation: blink 0.8s infinite;
+        
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100vw; height: 100vh;
+            gap: 2px; background: #222; /* Linie siatki */
+            border: 2px solid #222;
+        }
+        
+        .hex-block {
+            background: #000;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5vw; letter-spacing: 2px;
+            color: #555; /* Zgaszony, techniczny kolor */
         }
 
-        @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
+        #ui {
+            position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+            font-size: 18px; padding: 15px 40px; border: 2px solid #fff;
+            background: #000; color: #fff; cursor: pointer; z-index: 100;
+            letter-spacing: 4px;
+        }
+        
+        #center-data {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 6vw; text-align: center; width: 100%;
+            z-index: 200; display: none; background: #000; padding: 20px 0;
+            letter-spacing: -2px; /* Zbite litery */
         }
 
-        /* --- WARSTWA 4: PEŁNOEKRANOWE ZDJĘCIA --- */
-        #slider-container {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 20;
-            pointer-events: none; 
+        #slider {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            /* Efekt Threshold (progowy) - ekstremalny kontrast */
+            filter: grayscale(100%) contrast(1000%) brightness(1.2);
+            display: none; z-index: 50;
+            mix-blend-mode: exclusion; /* Noto blendowanie warstw */
         }
-
-        .slide {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-size: cover; background-position: center; background-repeat: no-repeat;
-            opacity: 0; 
-            transition: opacity var(--crossfade-duration) ease-in-out;
-            filter: var(--image-filter);
-        }
-
-        .slide.active { opacity: 1; }
     </style>
 </head>
 <body>
+    <div id="grid"></div>
+    <div id="center-data"></div>
+    <div id="slider"></div>
+    <div id="ui">SYSTEM.START()</div>
 
     <script>
-        // ==========================================
-        // --- PARAMETRY KONFIGURACYJNE (JS) ---
-        // ==========================================
-        const AUDIO_FILE_URL = "Play Sustain instalacja 5_1.mp3"; 
-        const BASE_NUMBER = "39000";
+        const audio = new Audio("Play Sustain instalacja 5_1.mp3");
+        audio.loop = true; audio.crossOrigin = "anonymous";
+        const images = []; for(let i=12; i<=21; i++) images.push(`Pustynia Atakama${i}.jpeg`);
         
-        // Intensywność deszczu cyfr
-        const DENSITY = 80; 
-        const ANIMATION_SPEED_MIN = 10; 
-        const ANIMATION_SPEED_MAX = 35; 
-        
-        const IMAGE_SHOW_TIME = 6000; 
-        const TYPEWRITER_SPEED = 60; 
-        // ==========================================
+        const grid = document.getElementById('grid');
+        const ui = document.getElementById('ui');
+        const centerData = document.getElementById('center-data');
+        const slider = document.getElementById('slider');
 
-        const IMAGE_FILES = [];
-        for (let i = 12; i <= 21; i++) {
-            IMAGE_FILES.push(`Pustynia Atakama${i}.jpeg`);
-        }
-    </script>
-
-    <!-- UI -->
-    <div id="grid-container"></div>
-    <div id="playBtn">PLAY</div>
-    <div id="stopBtn">STOP</div>
-    <div id="typewriter-container"></div>
-
-    <div id="slider-container">
-        <div id="slideA" class="slide"></div>
-        <div id="slideB" class="slide"></div>
-    </div>
-
-    <script>
-        const gridContainer = document.getElementById('grid-container');
-        const playBtn = document.getElementById('playBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const typewriterContainer = document.getElementById('typewriter-container');
-        const slideA = document.getElementById('slideA');
-        const slideB = document.getElementById('slideB');
-        
-        const audio = new Audio();
-        audio.src = AUDIO_FILE_URL;
-        audio.loop = true;
-        audio.crossOrigin = "anonymous";
-        audio.volume = 0; 
-
-        let glitchableBlocks = [];
-        let isPlaying = false;
-        let isGridActive = true; 
-        
-        let currentSlide = slideA;
-        let nextSlide = slideB;
-        let sliderLoop = null;
-        let fadeAudioInterval = null;
-        let abortSequence = false;
-
-        // --- FUNKCJE POMOCNICZE ---
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-        async function typeText(phrase) {
-            typewriterContainer.innerHTML = '<span id="tw-text"></span><span class="cursor">|</span>';
-            const twText = document.getElementById('tw-text');
-            for (let i = 0; i < phrase.length; i++) {
-                if(abortSequence) return;
-                twText.innerHTML += phrase[i];
-                await sleep(TYPEWRITER_SPEED);
-            }
+        // Generowanie stałych bloków HEX
+        for(let i=0; i<32; i++) {
+            const b = document.createElement('div');
+            b.className = 'hex-block';
+            b.innerText = '0x' + Math.floor(Math.random()*16777215).toString(16).toUpperCase().padStart(6, '0');
+            grid.appendChild(b);
         }
 
-        async function clearText() {
-            typewriterContainer.innerHTML = '';
-        }
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-        // --- 1. BEZWZGLĘDNE POZYCJONOWANIE PIKSELOWE (FIX NA iOS) ---
-        function generateExactAbsoluteGrid() {
-            gridContainer.innerHTML = '';
-            glitchableBlocks = [];
-            
-            // Fizyczny pomiar 1 bloku w ukryciu
-            const testSpan = document.createElement('span');
-            testSpan.style.fontFamily = "'VT323', monospace";
-            testSpan.style.fontSize = "22px";
-            testSpan.style.letterSpacing = "2px";
-            testSpan.innerText = BASE_NUMBER;
-            testSpan.style.position = "absolute";
-            testSpan.style.visibility = "hidden";
-            document.body.appendChild(testSpan);
-            
-            const blockW = testSpan.getBoundingClientRect().width;
-            const blockH = testSpan.getBoundingClientRect().height * 1.2; // margines w pionie
-            document.body.removeChild(testSpan);
-            
-            const safeWidth = window.innerWidth * 1.15;
-            const safeHeight = window.innerHeight * 1.15;
-            
-            let cols = Math.ceil(safeWidth / blockW);
-            let rows = Math.ceil(safeHeight / blockH);
-            
-            if (cols % 2 === 0) cols++;
-            if (rows % 2 === 0) rows++;
-            
-            const containerW = cols * blockW;
-            const containerH = rows * blockH;
-            
-            gridContainer.style.width = `${containerW}px`;
-            gridContainer.style.height = `${containerH}px`;
-            
-            const centerRow = Math.floor(rows / 2);
-            const centerCol = Math.floor(cols / 2);
-            
-            for(let r = 0; r < rows; r++) {
-                for(let c = 0; c < cols; c++) {
-                    
-                    if (r === centerRow && c === centerCol) {
-                        // Idealne pozycjonowanie przycisku PLAY
-                        playBtn.style.width = `${blockW}px`;
-                        playBtn.style.height = `${blockH}px`;
-                        playBtn.style.left = `calc(50% - ${containerW/2}px + ${c * blockW}px)`;
-                        playBtn.style.top = `calc(50% - ${containerH/2}px + ${r * blockH}px)`;
-                        
-                    } else {
-                        const span = document.createElement('span');
-                        span.className = 'data-block';
-                        span.style.width = `${blockW}px`;
-                        span.style.height = `${blockH}px`;
-                        span.style.left = `${c * blockW}px`;
-                        span.style.top = `${r * blockH}px`;
-                        span.innerText = BASE_NUMBER;
-                        span.dataset.animating = "false";
-                        
-                        glitchableBlocks.push(span);
-                        gridContainer.appendChild(span);
-                    }
-                }
-            }
-        }
+        ui.addEventListener('click', async () => {
+            if(ui.innerText === "SYSTEM.START()") {
+                ui.style.display = "none";
+                audio.volume = 1; audio.play();
 
-        // --- SILNIK HAKERSKI (GĘSTY, RANDOMOWY, WYGASAJĄCY) ---
-        function runMatrixEngine() {
-            if (!isGridActive) return;
-            
-            // Bardzo szybkie wywoływanie kolejnych procesów
-            setTimeout(() => {
-                if(!isGridActive) return;
+                // Brak fade'ów - twarde bloki danych
+                await sleep(1000);
+                centerData.style.display = "block";
                 
-                const randomBlock = glitchableBlocks[Math.floor(Math.random() * glitchableBlocks.length)];
+                centerData.innerText = "ATACAMA_DESERT [39.000T]";
+                await sleep(2000);
                 
-                if (randomBlock.dataset.animating === "false") {
-                    randomBlock.dataset.animating = "true";
-                    randomBlock.style.opacity = "1";
-                    randomBlock.style.color = "#ffffff";
-                    
-                    let currentVal = 0;
-                    const targetVal = parseInt(BASE_NUMBER);
-                    const step = Math.floor(Math.random() * 4000) + 1111; 
-                    const frameRate = Math.floor(Math.random() * (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)) + ANIMATION_SPEED_MIN;
-
-                    const interval = setInterval(() => {
-                        if(!isGridActive) { 
-                            clearInterval(interval); 
-                            randomBlock.dataset.animating = "false";
-                            return; 
-                        }
-                        
-                        currentVal += step;
-                        if (currentVal >= targetVal) {
-                            currentVal = targetVal;
-                            clearInterval(interval);
-                            randomBlock.innerText = currentVal.toString().padStart(5, '0');
-                            randomBlock.style.color = "";
-                            
-                            // Łagodne wygaszenie po osiągnięciu 39000
-                            setTimeout(() => {
-                                randomBlock.style.opacity = "0";
-                                randomBlock.dataset.animating = "false";
-                            }, 300);
-                            
-                        } else {
-                            randomBlock.innerText = currentVal.toString().padStart(5, '0');
-                        }
-                    }, frameRate);
-                }
+                centerData.innerText = "STATUS: FAST_FASHION";
+                await sleep(2000);
                 
-                // Odpalenie kolejnego ziarenka matrixa
-                runMatrixEngine();
-            }, Math.random() * (1000 / DENSITY)); 
-        }
+                centerData.innerText = "RATE: +100T/DAY";
+                await sleep(2000);
+                
+                centerData.innerText = "0xFFFFFF"; // Biały szum
+                await sleep(500);
+                centerData.style.display = "none";
 
-        // --- ZDJĘCIA ---
-        function changeSlide() {
-            if(abortSequence) return;
-            const randomImg = IMAGE_FILES[Math.floor(Math.random() * IMAGE_FILES.length)];
-            nextSlide.style.backgroundImage = `url('${randomImg}')`;
-            nextSlide.classList.add('active');
-            currentSlide.classList.remove('active');
-            let temp = currentSlide;
-            currentSlide = nextSlide;
-            nextSlide = temp;
-        }
+                // Pokaz zdjęć
+                slider.style.display = "block";
+                setInterval(() => {
+                    slider.style.backgroundImage = `url('${images[Math.floor(Math.random()*images.length)]}')`;
+                    // Rotacja i inwersja co zmianę
+                    slider.style.transform = Math.random() > 0.5 ? "scaleX(-1)" : "scaleX(1)";
+                }, 4000);
 
-        // --- SEKWENCJA GŁÓWNA ---
-        async function runMainSequence() {
-            abortSequence = false;
-
-            clearInterval(fadeAudioInterval);
-            let vol = 0;
-            fadeAudioInterval = setInterval(() => {
-                vol += 1 / 60; 
-                if (vol >= 1) { audio.volume = 1; clearInterval(fadeAudioInterval); } 
-                else { audio.volume = vol; }
-            }, 50);
-
-            // Blackout
-            await sleep(1500);
-            if(abortSequence) return;
-
-            // Narracja (Napisy idealnie na środku)
-            await typeText("IN THE ATACAMA DESERT");
-            await sleep(1500);
-            await clearText();
-            if(abortSequence) return;
-            await sleep(800);
-
-            await typeText("THERE ARE CURRENTLY");
-            await sleep(1500);
-            await clearText();
-            if(abortSequence) return;
-            await sleep(800);
-
-            await typeText("AROUND 39,000 TONS");
-            await sleep(1500);
-            await clearText();
-            if(abortSequence) return;
-            await sleep(800);
-
-            await typeText("OF DISCARDED FAST FASHION");
-            await sleep(1800);
-            await clearText();
-            if(abortSequence) return;
-            await sleep(800);
-            
-            await typeText("GROWING BY OVER 100 TONS EVERY DAY");
-            await sleep(2200);
-            await clearText();
-            if(abortSequence) return;
-            await sleep(1000); 
-
-            // Włączenie pokazu slajdów i przycisku STOP
-            changeSlide();
-            sliderLoop = setInterval(changeSlide, IMAGE_SHOW_TIME);
-            
-            stopBtn.style.display = "flex";
-            stopBtn.classList.add("pulse-5s");
-        }
-
-        // --- LOGIKA KLIKNIĘĆ ---
-        playBtn.addEventListener('click', () => {
-            isPlaying = true;
-            playBtn.style.display = "none"; // Całkowite ukrycie PLAY
-            
-            audio.volume = 0;
-            audio.play().catch(e => console.error(e));
-
-            const docEl = document.documentElement;
-            const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-            if (requestFS && !document.fullscreenElement) requestFS.call(docEl);
-
-            isGridActive = false;
-            glitchableBlocks.forEach(block => {
-                block.style.opacity = '0';
-            });
-
-            runMainSequence();
-        });
-
-        stopBtn.addEventListener('click', () => {
-            isPlaying = false;
-            abortSequence = true; 
-            
-            stopBtn.style.display = "none";
-            stopBtn.classList.remove("pulse-5s");
-
-            clearInterval(sliderLoop);
-            clearText(); 
-            
-            slideA.classList.remove('active');
-            slideB.classList.remove('active');
-
-            clearInterval(fadeAudioInterval);
-            let vol = audio.volume;
-            fadeAudioInterval = setInterval(() => {
-                vol -= 1 / 60;
-                if (vol <= 0) {
-                    audio.volume = 0;
-                    audio.pause();
-                    clearInterval(fadeAudioInterval);
-                } else { audio.volume = vol; }
-            }, 50);
-
-            setTimeout(() => {
-                playBtn.style.display = "flex"; // Przywrócenie PLAY
-                isGridActive = true;
-                // Start maszyn (20 wątków inicjujących rozproszone odliczanie)
-                for(let i=0; i<20; i++) runMatrixEngine();
-            }, 3000);
-        });
-
-        // --- INICJALIZACJA - Oczekiwanie na pełne wczytanie fontu dla precyzji! ---
-        document.fonts.ready.then(() => {
-            generateExactAbsoluteGrid();
-            isGridActive = true;
-            for(let i=0; i<20; i++) runMatrixEngine();
-        });
-        
-        window.addEventListener('resize', () => {
-            if(!isPlaying) {
-                clearTimeout(window.resizeTimer);
-                window.resizeTimer = setTimeout(() => {
-                    generateExactAbsoluteGrid();
-                }, 200);
+                setTimeout(() => { ui.innerText = "SYSTEM.HALT()"; ui.style.display = "block"; }, 2000);
+            } else {
+                window.location.reload();
             }
         });
     </script>
 </body>
 </html>
+
